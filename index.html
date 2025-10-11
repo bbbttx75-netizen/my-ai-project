@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ذكاء اصطناعي خاص</title>
+</head>
+<body>
+
+    <h1>مساعدي الذكي الخاص</h1>
+
+    <textarea id="promptInput" placeholder="اكتب سؤالك هنا..." rows="4" cols="50"></textarea>
+    <button onclick="generateContent()">إرسال</button>
+
+    <h2>الرد:</h2>
+    <div id="responseOutput" style="border: 1px solid #ccc; padding: 10px; min-height: 100px;">
+        سيظهر الرد هنا...
+    </div>
+
+    <script>
+        // *** الخطوة الهامة: ضع مفتاح API الخاص بك هنا ***
+        // لا تشارك هذا الملف علناً إذا كان المفتاح بداخله
+        const GEMINI_API_KEY = "ضــــع مـفـتــاح الـمـنـتــدى (API Key) الخـاص بـك هـنـا"; 
+        
+        async function generateContent() {
+            const prompt = document.getElementById('promptInput').value;
+            const outputDiv = document.getElementById('responseOutput');
+            outputDiv.innerHTML = "جاري التفكير...";
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`خطأ في API: ${response.status} ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                
+                // استخراج النص من الرد
+                const text = data.candidates[0].content.parts[0].text;
+                
+                outputDiv.innerText = text;
+
+            } catch (error) {
+                outputDiv.innerText = `حدث خطأ: تأكد من صحة مفتاح API. ${error.message}`;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+
+</body>
+</html>
