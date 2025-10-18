@@ -1,0 +1,68 @@
+# ----------------------------------------------------
+# app.py - كود Gradio الموحد (نص وصورة)
+# ----------------------------------------------------
+import gradio as gr
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from diffusers import StableDiffusionPipeline
+import torch
+
+# 1. إعداد النموذج الخفيف للمحادثة (لتجنب استخدام Mistral الثقيل)
+# سنستخدم GPT-2 كنموذج مجاني لضمان التشغيل على الأجهزة المجانية
+CHAT_MODEL_NAME = "gpt2"
+chatbot_pipeline = pipeline("text-generation", model=CHAT_MODEL_NAME)
+
+def respond_to_user(message, history):
+    # تحويل سجل المحادثة إلى نص واحد للنموذج
+    full_prompt = "System: أنت ذكاء اصطناعي محترف وأسطوري.\n"
+    for human_msg, ai_msg in history:
+        full_prompt += f"User: {human_msg}\nAssistant: {ai_msg}\n"
+    full_prompt += f"User: {message}\nAssistant:"
+
+    # توليد الرد
+    output = chatbot_pipeline(
+        full_prompt, 
+        max_new_tokens=100, 
+        temperature=0.8,
+        pad_token_id=chatbot_pipeline.tokenizer.eos_token_id
+    )
+    
+    response = output[0]['generated_text'].split('Assistant:')[-1].strip()
+    return response
+
+# 2. إعداد النموذج الخفيف للصور (SD-Tiny لتجنب GPU)
+# هذا النموذج خفيف جداً ويعمل على CPU/بأقل متطلبات
+IMAGE_MODEL_NAME = "hf-internal-testing/tiny-random-stable-diffusion"
+try:
+    pipe = StableDiffusionPipeline.from_pretrained(IMAGE_MODEL_NAME)
+    pipe.to("cpu")
+except Exception as e:
+    # في حالة فشل التحميل، نستخدم دالة وهمية لتجنب التعطيل
+    print(f"فشل تحميل نموذج الصورة: {e}")
+    def generate_image(prompt, negative_prompt=""):
+        raise gr.Error("نموذج توليد الصور غير متوفر حاليًا على هذا الجهاز.")
+    
+def generate_image(prompt, negative_prompt=""):
+    # توليد الصورة
+    image = pipe(prompt).images[0]
+    return image
+
+# 3. بناء واجهة Gradio الشاملة
+chat_tab = gr.ChatInterface(
+    respond_to_user,
+    title="المحرك النصي الأسطوري (الخفيف)"
+)
+
+image_tab = gr.Interface(
+    fn=generate_image,
+    inputs=[
+        gr.Textbox(label="وصف الصورة (Prompt)"),
+        gr.Textbox(label="الأشياء التي لا تريدها", value="")
+    ],
+    outputs="image",
+    title="مولد الصور الأسطوري (الخفيف)",
+)
+
+gr.TabbedInterface(
+    [chat_tab, image_tab], 
+    ["محادثة", "توليد صور"]
+).launch() # لا نستخدم share=True هنا في النشر الدائم
