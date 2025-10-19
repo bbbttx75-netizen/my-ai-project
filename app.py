@@ -1,9 +1,9 @@
-import streamlit as st st.error("الرجاء إدخال نص أولي لبدء التوليد.")
 import streamlit as st 
 from transformers import pipeline
 
+# @st.cache_resource # يمكنك إضافته لاحقاً بعد التأكد من عمل التطبيق
 def load_model(): 
-    # تم تغيير النموذج إلى DistilGPT2 (أصغر وأخف) لضمان العمل على Streamlit Sharing 
+    # نموذج DistilGPT2 (المصغر) لضمان العمل على Streamlit Sharing 
     return pipeline("text-generation", model="distilgpt2") 
 
 # يتم تحميل النموذج مرة واحدة
@@ -26,6 +26,8 @@ if st.button("توليد النص"):
             st.subheader("النتيجة:")
             st.code(result[0]['generated_text'])
     else:
+        # هذا هو السطر الذي كان به خطأ في البداية 
         st.error("الرجاء إدخال نص أولي لبدء التوليد.")
+
  
 
